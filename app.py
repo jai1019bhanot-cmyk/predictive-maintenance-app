@@ -77,7 +77,7 @@ st.markdown(
 # ------------------------------------------------------------
 # Load model (cached so it's only loaded once)
 # ------------------------------------------------------------
-MODEL_PATH = os.path.join(os.path.dirname(__file__), "random_forest_model.pkl")
+MODEL_PATH = os.path.join(os.path.dirname(__file__), "model.pkl")
 
 
 @st.cache_resource
