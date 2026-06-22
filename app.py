@@ -527,46 +527,78 @@ elif page == "Prediction Tool":
                     """,
                     unsafe_allow_html=True,
                 )
-            else:
-                st.markdown(
-                    f"""
-                    <style>
-                    @keyframes ok-pulse {{
-                        0% {{ box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.4); }}
-                        70% {{ box-shadow: 0 0 0 14px rgba(34, 197, 94, 0); }}
-                        100% {{ box-shadow: 0 0 0 0 rgba(34, 197, 94, 0); }}
-                    }}
-                    .result-ok {{
-                        animation: ok-pulse 2.5s infinite;
-                    }}
-                    </style>
-                    <div class="result-ok" style="background: #020f06; border: 1px solid #22c55e;
-                                border-left: 4px solid #22c55e; border-radius: 10px;
-                                padding: 1.8rem 2rem;">
-                        <div style="font-family: 'JetBrains Mono', monospace; font-size: 0.65rem;
-                                    color: #22c55e; letter-spacing: 0.15em; margin-bottom: 0.5rem;">
-                            VERDICT
-                        </div>
-                        <div style="font-family: 'Space Grotesk', sans-serif; font-size: 1.8rem;
-                                    font-weight: 700; color: #22c55e; letter-spacing: -0.02em;">
-                            ✓ NORMAL OPERATION
-                        </div>
-                        <div style="font-family: 'Inter', sans-serif; font-size: 0.9rem;
-                                    color: #14532d; margin-top: 0.5rem;">
-                            Estimated failure probability:
-                            <span style="font-family: 'JetBrains Mono', monospace;
-                                         color: #22c55e; font-size: 1.1rem; font-weight: 600;">
-                                {probability:.1%}
-                            </span>
-                        </div>
-                        <div style="font-family: 'Inter', sans-serif; font-size: 0.8rem;
-                                    color: #4a5568; margin-top: 1rem;">
-                            All sensor readings are within normal operating parameters.
+      else:
+    st.markdown(
+        f"""
+        <style>
+        @keyframes ok-pulse {{
+            0% {{ box-shadow: 0 0 0 0 rgba(34,197,94,0.35); }}
+            70% {{ box-shadow: 0 0 0 14px rgba(34,197,94,0); }}
+            100% {{ box-shadow: 0 0 0 0 rgba(34,197,94,0); }}
+        }}
+
+        .result-ok {{
+            animation: ok-pulse 2.5s infinite;
+        }}
+        </style>
+
+        <div class="result-ok" style="
+            background: linear-gradient(135deg,#071a12,#0b2418);
+            border:1px solid #22c55e;
+            border-left:5px solid #22c55e;
+            border-radius:14px;
+            padding:2rem 2.2rem;
+        ">
+
+            <div style="
+                font-family:'JetBrains Mono',monospace;
+                font-size:0.7rem;
+                color:#86efac;
+                letter-spacing:0.15em;
+                margin-bottom:10px;
+            ">
+                STATUS / VERIFIED
+            </div>
+
+            <div style="
+                font-family:'Space Grotesk',sans-serif;
+                font-size:2rem;
+                font-weight:700;
+                color:#ffffff;
+            ">
+                ✓ MACHINE HEALTHY
+            </div>
+
+            <div style="
+                font-family:'Inter',sans-serif;
+                font-size:1rem;
+                color:#d1fae5;
+                margin-top:15px;
+            ">
+                Failure probability:
+                <span style="
+                    font-family:'JetBrains Mono',monospace;
+                    color:#22c55e;
+                    font-size:1.2rem;
+                    font-weight:700;
+                ">
+                    {probability:.1%}
+                </span>
+            </div>
+
+            <div style="
+                font-family:'Inter',sans-serif;
+                font-size:0.85rem;
+                color:#94a3b8;
+                margin-top:15px;
+            ">
+                All sensor readings indicate stable machine operation.
+            </div>
+
         </div>
-                    </div>
-                    """,
-                    unsafe_allow_html=True,
-                )
+        """,
+        unsafe_allow_html=True,
+    )
 
             # Input summary
             st.markdown("<br>", unsafe_allow_html=True)
