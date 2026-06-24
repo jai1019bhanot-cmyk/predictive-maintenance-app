@@ -157,12 +157,18 @@ st.markdown(
 )
 
 # ------------------------------------------------------------
-# Load model
+# Load models
 # ------------------------------------------------------------
-MODEL_PATH = os.path.join(os.path.dirname(__file__), "model.pkl")
+MODEL_PATH     = os.path.join(os.path.dirname(__file__), "model.pkl")
+ANN_MODEL_PATH = os.path.join(os.path.dirname(__file__), "ann_rul_model.pkl")
+
 @st.cache_resource
 def load_model():
     return joblib.load(MODEL_PATH)
+
+@st.cache_resource
+def load_ann():
+    return joblib.load(ANN_MODEL_PATH)
 
 # ------------------------------------------------------------
 # Sidebar
@@ -198,7 +204,8 @@ with st.sidebar:
             <hr style="border-color: #1c2333;">
             <div style="font-family: 'JetBrains Mono', monospace; font-size: 0.7rem;
                         color: #2a2f3a; line-height: 1.6;">
-                MODEL: Random Forest<br>
+                MODEL 1: Random Forest<br>
+                MODEL 2: ANN (MLPRegressor)<br>
                 DATASET: AI4I 2020<br>
                 FEATURES: 7
             </div>
@@ -229,8 +236,9 @@ if page == "Home":
             </h1>
             <p style="font-family: 'Inter', sans-serif; font-size: 1rem;
                       color: #6b7280; max-width: 560px; line-height: 1.7; margin: 0;">
-                A Random Forest classifier trained on the AI4I 2020 dataset.
-                Feed it live sensor readings — get an instant failure risk verdict.
+                A dual-model system: Random Forest for failure classification
+                + ANN for Remaining Useful Life prediction, trained on the AI4I 2020 dataset.
+                Feed it live sensor readings — get an instant verdict and tool life estimate.
             </p>
         </div>
         """,
@@ -244,11 +252,11 @@ if page == "Home":
 
     cards = [
         ("01", "INPUT", "#f59e0b",
-         "Five real-time sensor readings plus machine type (L / M / H) are passed to the model."),
-        ("02", "MODEL", "#f59e0b",
-         "Random Forest trained to detect failure-preceding sensor patterns in 10 000+ industrial cycles."),
+         "Five real-time sensor readings plus machine type (L / M / H) are passed to both models."),
+        ("02", "MODELS", "#f59e0b",
+         "Random Forest classifies failure risk. ANN (MLPRegressor) predicts Remaining Useful Life in minutes."),
         ("03", "OUTPUT", "#f59e0b",
-         "Binary verdict — Normal or Failure Risk — with failure probability score."),
+         "Binary failure verdict + failure probability + RUL estimate with tool wear status indicator."),
     ]
 
     for col, (num, title, accent, desc) in zip([col1, col2, col3], cards):
@@ -313,7 +321,7 @@ elif page == "About the Project":
     )
 
     st.markdown("<br>", unsafe_allow_html=True)
-    st.markdown("### Features used by the model")
+    st.markdown("### Features used by the models")
 
     feature_table = pd.DataFrame(
         {
@@ -348,13 +356,12 @@ elif page == "About the Project":
     )
 
     st.markdown("<br>", unsafe_allow_html=True)
-
     st.markdown("### Tech stack")
 
     tech = [
         ("Python", "Data processing & model training"),
         ("pandas", "Data wrangling & feature engineering"),
-        ("scikit-learn", "Random Forest Classifier (100 estimators)"),
+        ("scikit-learn", "Random Forest Classifier + ANN MLPRegressor"),
         ("Streamlit", "Interactive web interface"),
         ("joblib", "Model serialization"),
     ]
@@ -395,7 +402,7 @@ elif page == "Prediction Tool":
             <h1 style="font-family: 'Space Grotesk', sans-serif; font-weight: 700;
                        letter-spacing: -0.03em; margin: 0;">Prediction Tool</h1>
             <p style="color: #6b7280; font-size: 0.92rem; margin-top: 0.6rem;">
-                Enter current sensor readings. Hit <strong style="color:#f59e0b;">RUN ANALYSIS</strong> for a failure risk verdict.
+                Enter current sensor readings. Hit <strong style="color:#f59e0b;">RUN ANALYSIS</strong> for a failure risk verdict and RUL estimate.
             </p>
         </div>
         """,
@@ -412,12 +419,18 @@ elif page == "Prediction Tool":
             <div style="background: #1a0a0a; border: 1px solid #7f1d1d; border-radius: 10px;
                         padding: 1.2rem 1.5rem; color: #f87171; font-family: 'Inter', sans-serif;
                         font-size: 0.88rem;">
-                ⚠ Model file not found. Ensure <code>random_forest_model.pkl</code>
+                ⚠ Model file not found. Ensure <code>model.pkl</code>
                 is in the same directory as <code>app.py</code>.
             </div>
             """,
             unsafe_allow_html=True,
         )
+
+    try:
+        ann_model = load_ann()
+        ann_loaded = True
+    except FileNotFoundError:
+        ann_loaded = False
 
     # Input section header
     st.markdown(
@@ -485,8 +498,15 @@ elif page == "Prediction Tool":
             prediction = model.predict(input_df)[0]
             probability = model.predict_proba(input_df)[0][1]
 
+            # ANN — RUL prediction
+            rul_value = None
+            if ann_loaded:
+                rul_value = float(ann_model.predict(input_df)[0])
+                rul_value = max(0.0, min(260.0, rul_value))
+
             st.markdown("<br>", unsafe_allow_html=True)
 
+            # ── RF Verdict Card ───────────────────────────────
             if prediction == 1:
                 st.markdown(
                     f"""
@@ -527,7 +547,7 @@ elif page == "Prediction Tool":
                     """,
                     unsafe_allow_html=True,
                 )
-            
+
             else:
                 st.markdown(
                     f"""
@@ -568,6 +588,57 @@ elif page == "Prediction Tool":
                     """,
                     unsafe_allow_html=True,
                 )
+
+            # ── ANN RUL Card ──────────────────────────────────
+            if rul_value is not None:
+                rul_pct    = rul_value / 260.0 * 100
+                rul_color  = "#22c55e" if rul_pct > 50 else ("#f59e0b" if rul_pct > 20 else "#ef4444")
+                rul_status = "GOOD" if rul_pct > 50 else ("CAUTION" if rul_pct > 20 else "CRITICAL")
+                st.markdown("<br>", unsafe_allow_html=True)
+                st.markdown(
+                    f"""
+                    <div style="background: #0a0d14; border: 1px solid #1c2333;
+                                border-left: 4px solid {rul_color}; border-radius: 10px;
+                                padding: 1.5rem 2rem;">
+                        <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                            <div>
+                                <div style="font-family: 'JetBrains Mono', monospace; font-size: 0.65rem;
+                                            color: {rul_color}; letter-spacing: 0.15em; margin-bottom: 0.4rem;">
+                                    ANN · REMAINING USEFUL LIFE
+                                </div>
+                                <div style="font-family: 'Space Grotesk', sans-serif; font-size: 2rem;
+                                            font-weight: 700; color: {rul_color}; letter-spacing: -0.02em;">
+                                    {rul_value:.1f} <span style="font-size: 1rem; color: #4a5568;">min</span>
+                                </div>
+                                <div style="font-family: 'Inter', sans-serif; font-size: 0.8rem;
+                                            color: #4a5568; margin-top: 0.4rem;">
+                                    Tool can operate for approximately
+                                    <strong style="color: {rul_color};">{rul_value / 60:.1f} hours</strong>
+                                    before replacement.
+                                </div>
+                            </div>
+                            <div style="text-align: right;">
+                                <div style="font-family: 'JetBrains Mono', monospace; font-size: 0.65rem;
+                                            color: #2a2f3a; letter-spacing: 0.1em; margin-bottom: 0.3rem;">
+                                    WEAR REMAINING
+                                </div>
+                                <div style="background: #1c2333; border-radius: 6px;
+                                            width: 120px; height: 8px; overflow: hidden;">
+                                    <div style="background: {rul_color}; width: {rul_pct:.1f}%; height: 100%;
+                                                border-radius: 6px;"></div>
+                                </div>
+                                <div style="font-family: 'JetBrains Mono', monospace; font-size: 0.78rem;
+                                            color: {rul_color}; margin-top: 0.35rem;">
+                                    {rul_pct:.1f}% · {rul_status}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    """,
+                    unsafe_allow_html=True,
+                )
+
+            # ── Input Summary ─────────────────────────────────
             st.markdown("<br>", unsafe_allow_html=True)
             st.markdown(
                 """
